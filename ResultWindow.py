@@ -228,6 +228,10 @@ class Ui_ResultWindow(object):
         self.applyOtdButton.setText(_translate("ResultWindow", "Apply OTD adjustments"))
 
 
+def _format_three_decimals(value):
+    return f"{round(float(value), 3):.3f}"
+
+
 def import_otd_config(self):
     file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
         self,
@@ -294,11 +298,11 @@ def import_otd_config(self):
     self.tablet_rotation = tablet_data.get("Rotation")
 
     summary = (
-        f"Width: {self.tablet_width}\n"
-        f"Height: {self.tablet_height}\n"
-        f"X: {self.tablet_x}\n"
-        f"Y: {self.tablet_y}\n"
-        f"Rotation: {self.tablet_rotation}"
+        f"Width: {_format_three_decimals(self.tablet_width)}\n"
+        f"Height: {_format_three_decimals(self.tablet_height)}\n"
+        f"X: {_format_three_decimals(self.tablet_x)}\n"
+        f"Y: {_format_three_decimals(self.tablet_y)}\n"
+        f"Rotation: {_format_three_decimals(self.tablet_rotation)}"
     )
 
     QtWidgets.QMessageBox.information(
@@ -359,27 +363,18 @@ def apply_otd_adjustments(self):
     new_w = w * (horiz_pct / 100.0)
     new_h = h * (vert_pct / 100.0)
 
-    OSU_WIDTH = 512.0
-    OSU_HEIGHT = 384.0
-
-    dx_ratio = skew_x_px / OSU_WIDTH
-    dy_ratio = skew_y_px / OSU_HEIGHT
-
-    delta_x_tablet = dx_ratio * new_w
-    delta_y_tablet = dy_ratio * new_h
-
-    new_x = x + delta_x_tablet
-    new_y = y + delta_y_tablet
+    new_x = x + skew_x_px
+    new_y = y + skew_y_px
 
     new_rot = rot + rotation_delta
 
     updated_tablet = dict(self.otd_tablet)
 
-    updated_tablet["Width"] = new_w
-    updated_tablet["Height"] = new_h
-    updated_tablet["X"] = new_x
-    updated_tablet["Y"] = new_y
-    updated_tablet["Rotation"] = new_rot
+    updated_tablet["Width"] = round(new_w, 3)
+    updated_tablet["Height"] = round(new_h, 3)
+    updated_tablet["X"] = round(new_x, 3)
+    updated_tablet["Y"] = round(new_y, 3)
+    updated_tablet["Rotation"] = round(new_rot, 3)
 
     default_dir = Path(self.otd_config_path).parent if self.otd_config_path else Path.cwd()
     original_name = Path(self.otd_config_path).stem if self.otd_config_path else "settings"
