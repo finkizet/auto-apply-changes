@@ -15,34 +15,6 @@ If you click the version, *AimAnalyzer.zip* file will be there. Download and unz
 ### Update
 There is no auto update function currently, please re-download the zip file again.
 
-## How To Use
-### Running from source
-If you want to launch the analyzer directly from this repository (instead of the packaged executable), run it from the project root where `main.py` lives:
-
-1. Create a virtual environment and install dependencies:
-   ```bash
-   python -m venv .venv
-   # Windows
-   .venv\\Scripts\\activate
-   # macOS / Linux
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-2. Start the app from the repository root:
-   ```bash
-   python main.py
-   ```
-
-On Windows this is the same folder that contains `main.py`, e.g. `C:\\Users\\<you>\\Desktop\\dev\\auto-apply-changes`. The PyQt6 UI needs a desktop environment to appear.
-
-### Accepting or discarding repository changes
-If you receive updated files (for example, from this assistant) and want to manage them in your local clone:
-
-* Preview what changed: `git status` and `git diff` from the repository root.
-* Accept changes: stage and commit them locally with `git add <files>` followed by `git commit -m "<message>"`. If you use a hosting service, push with `git push` and open a pull request when you are ready for review—no need to create a new PR for every small test.
-* Reject changes: discard local edits with `git reset --hard` (to drop uncommitted changes) or `git checkout -- <file>` to revert specific files. To go back to the latest remote state entirely, run `git fetch` then `git reset --hard origin/<branch>`.
-* Apply a specific patch again: check out the target branch, then run `git cherry-pick <commit>` or manually copy the updated file content.
-
 If you open the AimAnalyzer.exe, you will look this window:
 ![Main Window](./images/use_1.png)
 There is *Songs Folder* section. If you put songs folder there and load it, this tool can find the maps from the given replays. Make sure to input the correct osu! Songs folder, and then click *Load* button to use this feature.
