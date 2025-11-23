@@ -15,7 +15,6 @@ If you click the version, *AimAnalyzer.zip* file will be there. Download and unz
 ### Update
 There is no auto update function currently, please re-download the zip file again.
 
-## How To Use
 If you open the AimAnalyzer.exe, you will look this window:
 ![Main Window](./images/use_1.png)
 There is *Songs Folder* section. If you put songs folder there and load it, this tool can find the maps from the given replays. Make sure to input the correct osu! Songs folder, and then click *Load* button to use this feature.
