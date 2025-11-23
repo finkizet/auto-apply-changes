@@ -364,7 +364,7 @@ def apply_otd_adjustments(self):
     new_h = h * (vert_pct / 100.0)
 
     new_x = x + skew_x_px
-    new_y = y + skew_y_px
+    new_y = y - skew_y_px
 
     new_rot = rot + rotation_delta
 
