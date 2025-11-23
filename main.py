@@ -308,12 +308,15 @@ class ResultWindow(QDialog, Ui_ResultWindow):
             self.skewednessUpward.setText("Skewed <em>upward</em> <strong>{}</strong> px".format(-y192))
         else:
             self.skewednessUpward.setText("Skewed <em>downward</em> <strong>{}</strong> px".format(y192))
-        
+
         if x256 > 0:
             self.skewednessRightward.setText("Skewed <em>rightward</em> <strong>{}</strong> px".format(x256))
         else:
             self.skewednessRightward.setText("Skewed <em>leftward</em> <strong>{}</strong> px".format(-x256))
-        
+
+        self.skew_x_px = x256
+        self.skew_y_px = -y192
+
         skewednessRightwardPValue = (modelsSkewed[0].fit().pvalues)[0]
         skewednessUpwardPValue = (modelsSkewed[1].fit().pvalues)[0]
         if skewednessRightwardPValue < 0.05:
@@ -339,6 +342,9 @@ class ResultWindow(QDialog, Ui_ResultWindow):
         self.widenessHorizontal.setText("Horizontally <em>{}</em> <strong>{}</strong> %".format(horizontalAim, round(width/512 * 100, 2)))
         self.widenessVertical.setText("Vertically <em>{}</em> <strong>{}</strong> %".format(verticalAim, round(height/384 * 100, 2)))
 
+        self.horizontal_aim_pct = width / 512 * 100
+        self.vertical_aim_pct = height / 384 * 100
+
         widenessHorizontalPValue = (modelsSkewed[0].fit().pvalues)[1]
         widenessVerticalPValue = (modelsSkewed[1].fit().pvalues)[1]
         if widenessHorizontalPValue < 0.05:
@@ -353,6 +359,8 @@ class ResultWindow(QDialog, Ui_ResultWindow):
         else:
             self.widenessVertical.setStyleSheet("background-color:lightpink")
             self.widenessVertical.setToolTip("insignificant; recommend to disregard")
+
+        self.rotation_deg = rotatedDegree
         
         ## Raw result
         widenessRawResultList = [">>>>> x-axis:"]
