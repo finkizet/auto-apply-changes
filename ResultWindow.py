@@ -181,6 +181,28 @@ class Ui_ResultWindow(object):
         self.verticalLayout_3.addWidget(self.tabWidget)
         self.otdButtonsLayout = QtWidgets.QHBoxLayout()
         self.otdButtonsLayout.setObjectName("otdButtonsLayout")
+        self.applyWidthCheckbox = QtWidgets.QCheckBox(parent=ResultWindow)
+        self.applyWidthCheckbox.setChecked(True)
+        self.applyWidthCheckbox.setObjectName("applyWidthCheckbox")
+        self.otdButtonsLayout.addWidget(self.applyWidthCheckbox)
+        self.applyHeightCheckbox = QtWidgets.QCheckBox(parent=ResultWindow)
+        self.applyHeightCheckbox.setChecked(True)
+        self.applyHeightCheckbox.setObjectName("applyHeightCheckbox")
+        self.otdButtonsLayout.addWidget(self.applyHeightCheckbox)
+        self.applyXCheckbox = QtWidgets.QCheckBox(parent=ResultWindow)
+        self.applyXCheckbox.setChecked(True)
+        self.applyXCheckbox.setObjectName("applyXCheckbox")
+        self.otdButtonsLayout.addWidget(self.applyXCheckbox)
+        self.applyYCheckbox = QtWidgets.QCheckBox(parent=ResultWindow)
+        self.applyYCheckbox.setChecked(True)
+        self.applyYCheckbox.setObjectName("applyYCheckbox")
+        self.otdButtonsLayout.addWidget(self.applyYCheckbox)
+        self.applyRotationCheckbox = QtWidgets.QCheckBox(parent=ResultWindow)
+        self.applyRotationCheckbox.setChecked(True)
+        self.applyRotationCheckbox.setObjectName("applyRotationCheckbox")
+        self.otdButtonsLayout.addWidget(self.applyRotationCheckbox)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.otdButtonsLayout.addItem(spacerItem)
         self.importOtdButton = QtWidgets.QPushButton(parent=ResultWindow)
         self.importOtdButton.setObjectName("importOtdButton")
         self.importOtdButton.clicked.connect(ResultWindow.import_otd_config)
@@ -224,8 +246,26 @@ class Ui_ResultWindow(object):
         self.rotatednessRawResultsTitle.setText(_translate("ResultWindow", "<b>Raw Results</b>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("ResultWindow", "Rotatedness"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("ResultWindow", "Raw"))
+        self.applyWidthCheckbox.setText(_translate("ResultWindow", "Apply Width"))
+        self.applyHeightCheckbox.setText(_translate("ResultWindow", "Apply Height"))
+        self.applyXCheckbox.setText(_translate("ResultWindow", "Apply X"))
+        self.applyYCheckbox.setText(_translate("ResultWindow", "Apply Y"))
+        self.applyRotationCheckbox.setText(_translate("ResultWindow", "Apply Rotation"))
         self.importOtdButton.setText(_translate("ResultWindow", "Import OTD config"))
         self.applyOtdButton.setText(_translate("ResultWindow", "Apply OTD adjustments"))
+
+    def set_otd_checkbox_defaults(self):
+        """Toggle OTD parameter checkboxes based on metric significance."""
+
+        def _is_significant(label: QtWidgets.QLabel) -> bool:
+            style = (label.styleSheet() or "").lower()
+            return "lightgreen" in style or "#00aa00" in style
+
+        self.applyWidthCheckbox.setChecked(_is_significant(self.widenessHorizontal))
+        self.applyHeightCheckbox.setChecked(_is_significant(self.widenessVertical))
+        self.applyXCheckbox.setChecked(_is_significant(self.skewednessRightward))
+        self.applyYCheckbox.setChecked(_is_significant(self.skewednessUpward))
+        self.applyRotationCheckbox.setChecked(_is_significant(self.rotatednessResult))
 
 
 def _format_three_decimals(value):
@@ -368,13 +408,28 @@ def apply_otd_adjustments(self):
 
     new_rot = rot + rotation_delta
 
+    apply_width = getattr(self, "applyWidthCheckbox", None)
+    apply_height = getattr(self, "applyHeightCheckbox", None)
+    apply_x = getattr(self, "applyXCheckbox", None)
+    apply_y = getattr(self, "applyYCheckbox", None)
+    apply_rotation = getattr(self, "applyRotationCheckbox", None)
+
     updated_tablet = dict(self.otd_tablet)
 
-    updated_tablet["Width"] = round(new_w, 3)
-    updated_tablet["Height"] = round(new_h, 3)
-    updated_tablet["X"] = round(new_x, 3)
-    updated_tablet["Y"] = round(new_y, 3)
-    updated_tablet["Rotation"] = round(new_rot, 3)
+    if apply_width is None or apply_width.isChecked():
+        updated_tablet["Width"] = round(new_w, 3)
+
+    if apply_height is None or apply_height.isChecked():
+        updated_tablet["Height"] = round(new_h, 3)
+
+    if apply_x is None or apply_x.isChecked():
+        updated_tablet["X"] = round(new_x, 3)
+
+    if apply_y is None or apply_y.isChecked():
+        updated_tablet["Y"] = round(new_y, 3)
+
+    if apply_rotation is None or apply_rotation.isChecked():
+        updated_tablet["Rotation"] = round(new_rot, 3)
 
     default_dir = Path(self.otd_config_path).parent if self.otd_config_path else Path.cwd()
     original_name = Path(self.otd_config_path).stem if self.otd_config_path else "settings"

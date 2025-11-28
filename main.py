@@ -361,7 +361,10 @@ class ResultWindow(QDialog, Ui_ResultWindow):
             self.widenessVertical.setToolTip("insignificant; recommend to disregard")
 
         self.rotation_deg = rotatedDegree
-        
+
+        # Default checkbox states follow the significance of each metric.
+        self.set_otd_checkbox_defaults()
+
         ## Raw result
         widenessRawResultList = [">>>>> x-axis:"]
         widenessRawResultList.append(str(modelsSkewed[0].fit().summary()))
