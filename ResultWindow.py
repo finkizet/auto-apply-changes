@@ -7,6 +7,8 @@
 
 
 import json
+import os
+import subprocess
 from pathlib import Path
 
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -50,11 +52,11 @@ class Ui_ResultWindow(object):
         self.verticalLayout_10 = QtWidgets.QVBoxLayout()
         self.verticalLayout_10.setObjectName("verticalLayout_10")
         self.label_2 = QtWidgets.QLabel(parent=self.scrollAreaWidgetContents)
-        self.label_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.label_2.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTrailing | QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.label_2.setObjectName("label_2")
         self.verticalLayout_10.addWidget(self.label_2)
         self.label = QtWidgets.QLabel(parent=self.scrollAreaWidgetContents)
-        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTrailing | QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.label.setObjectName("label")
         self.verticalLayout_10.addWidget(self.label)
         self.verticalLayout_4.addLayout(self.verticalLayout_10)
@@ -129,11 +131,11 @@ class Ui_ResultWindow(object):
         self.verticalLayout_12 = QtWidgets.QVBoxLayout()
         self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.label_3 = QtWidgets.QLabel(parent=self.scrollAreaWidgetContents_2)
-        self.label_3.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.label_3.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTrailing | QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.label_3.setObjectName("label_3")
         self.verticalLayout_12.addWidget(self.label_3)
         self.label_4 = QtWidgets.QLabel(parent=self.scrollAreaWidgetContents_2)
-        self.label_4.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.label_4.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTrailing | QtCore.Qt.AlignmentFlag.AlignVCenter)
         self.label_4.setObjectName("label_4")
         self.verticalLayout_12.addWidget(self.label_4)
         self.verticalLayout_2.addLayout(self.verticalLayout_12)
@@ -203,6 +205,19 @@ class Ui_ResultWindow(object):
         self.otdButtonsLayout.addWidget(self.applyRotationCheckbox)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
         self.otdButtonsLayout.addItem(spacerItem)
+        self.restartOtdUiCheckbox = QtWidgets.QCheckBox(parent=ResultWindow)
+        self.restartOtdUiCheckbox.setChecked(False)
+        self.restartOtdUiCheckbox.setObjectName("restartOtdUiCheckbox")
+        self.otdButtonsLayout.addWidget(self.restartOtdUiCheckbox)
+
+        # Restore saved checkbox state
+        settings = QtCore.QSettings("OsuAimAnalyzer", "AimAnalyzer")
+        saved_restart = settings.value("restart_otd_ui", False, type=bool)
+        self.restartOtdUiCheckbox.setChecked(saved_restart)
+
+        # Connect change event to save function
+        self.restartOtdUiCheckbox.toggled.connect(self._save_restart_otd_ui_pref)
+
         self.importOtdButton = QtWidgets.QPushButton(parent=ResultWindow)
         self.importOtdButton.setObjectName("importOtdButton")
         self.importOtdButton.clicked.connect(ResultWindow.import_otd_config)
@@ -211,6 +226,10 @@ class Ui_ResultWindow(object):
         self.applyOtdButton.setObjectName("applyOtdButton")
         self.applyOtdButton.clicked.connect(ResultWindow.apply_otd_adjustments)
         self.otdButtonsLayout.addWidget(self.applyOtdButton)
+        self.applyLiveOtdButton = QtWidgets.QPushButton(parent=ResultWindow)
+        self.applyLiveOtdButton.setObjectName("applyLiveOtdButton")
+        self.applyLiveOtdButton.clicked.connect(ResultWindow.apply_otd_live)
+        self.otdButtonsLayout.addWidget(self.applyLiveOtdButton)
         self.verticalLayout_3.addLayout(self.otdButtonsLayout)
 
         self.otd_config_path = None
@@ -251,8 +270,10 @@ class Ui_ResultWindow(object):
         self.applyXCheckbox.setText(_translate("ResultWindow", "Apply X"))
         self.applyYCheckbox.setText(_translate("ResultWindow", "Apply Y"))
         self.applyRotationCheckbox.setText(_translate("ResultWindow", "Apply Rotation"))
-        self.importOtdButton.setText(_translate("ResultWindow", "Import OTD config"))
-        self.applyOtdButton.setText(_translate("ResultWindow", "Apply OTD adjustments"))
+        self.restartOtdUiCheckbox.setText(_translate("ResultWindow", "Restart OTD UI"))
+        self.importOtdButton.setText(_translate("ResultWindow", "Import OTD"))
+        self.applyOtdButton.setText(_translate("ResultWindow", "Create new"))
+        self.applyLiveOtdButton.setText(_translate("ResultWindow", "Apply"))
 
     def set_otd_checkbox_defaults(self):
         """Toggle OTD parameter checkboxes based on metric significance."""
@@ -267,9 +288,97 @@ class Ui_ResultWindow(object):
         self.applyYCheckbox.setChecked(_is_significant(self.skewednessUpward))
         self.applyRotationCheckbox.setChecked(_is_significant(self.rotatednessResult))
 
+    def _save_restart_otd_ui_pref(self, checked: bool):
+        """Persist the 'Restart OTD UI' checkbox state across runs."""
+        settings = QtCore.QSettings("OsuAimAnalyzer", "AimAnalyzer")
+        settings.setValue("restart_otd_ui", checked)
+
 
 def _format_three_decimals(value):
     return f"{round(float(value), 3):.3f}"
+
+
+def _generate_updated_tablet(self, base_tablet: dict):
+    """
+    Calculate updated tablet values based on current analyzer metrics
+    and OTD parameter checkboxes, using the given base tablet config.
+    """
+    if not isinstance(base_tablet, dict):
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Tablet config not found",
+            "Could not locate a Tablet section in the current configuration.",
+        )
+        return None
+
+    required_metrics = {
+        "skew_x_px": getattr(self, "skew_x_px", None),
+        "skew_y_px": getattr(self, "skew_y_px", None),
+        "horizontal_aim_pct": getattr(self, "horizontal_aim_pct", None),
+        "vertical_aim_pct": getattr(self, "vertical_aim_pct", None),
+        "rotation_deg": getattr(self, "rotation_deg", None),
+    }
+
+    if any(value is None for value in required_metrics.values()):
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Results unavailable",
+            "Analyzer results are missing; cannot apply adjustments.",
+        )
+        return None
+
+    try:
+        w = float(base_tablet.get("Width", 0))
+        h = float(base_tablet.get("Height", 0))
+        x = float(base_tablet.get("X", 0))
+        y = float(base_tablet.get("Y", 0))
+        rot = float(base_tablet.get("Rotation", 0.0))
+    except (TypeError, ValueError):
+        QtWidgets.QMessageBox.critical(
+            self,
+            "Invalid tablet values",
+            "Current Tablet values are invalid or missing.",
+        )
+        return None
+
+    horiz_pct = float(required_metrics["horizontal_aim_pct"])
+    vert_pct = float(required_metrics["vertical_aim_pct"])
+    skew_x_px = float(required_metrics["skew_x_px"])
+    skew_y_px = float(required_metrics["skew_y_px"])
+    rotation_delta = float(required_metrics["rotation_deg"])
+
+    new_w = w * (horiz_pct / 100.0)
+    new_h = h * (vert_pct / 100.0)
+
+    new_x = x + skew_x_px
+    new_y = y - skew_y_px
+
+    new_rot = rot + rotation_delta
+
+    apply_width = getattr(self, "applyWidthCheckbox", None)
+    apply_height = getattr(self, "applyHeightCheckbox", None)
+    apply_x = getattr(self, "applyXCheckbox", None)
+    apply_y = getattr(self, "applyYCheckbox", None)
+    apply_rotation = getattr(self, "applyRotationCheckbox", None)
+
+    updated_tablet = dict(base_tablet)
+
+    if apply_width is None or apply_width.isChecked():
+        updated_tablet["Width"] = round(new_w, 3)
+
+    if apply_height is None or apply_height.isChecked():
+        updated_tablet["Height"] = round(new_h, 3)
+
+    if apply_x is None or apply_x.isChecked():
+        updated_tablet["X"] = round(new_x, 3)
+
+    if apply_y is None or apply_y.isChecked():
+        updated_tablet["Y"] = round(new_y, 3)
+
+    if apply_rotation is None or apply_rotation.isChecked():
+        updated_tablet["Rotation"] = round(new_rot, 3)
+
+    return updated_tablet
 
 
 def import_otd_config(self):
@@ -356,6 +465,7 @@ Ui_ResultWindow.import_otd_config = import_otd_config
 
 
 def apply_otd_adjustments(self):
+    # To save a separate file in the old way, you need to import the config
     if not getattr(self, "otd_tablet", None):
         QtWidgets.QMessageBox.warning(
             self,
@@ -364,72 +474,10 @@ def apply_otd_adjustments(self):
         )
         return
 
-    required_metrics = {
-        "skew_x_px": getattr(self, "skew_x_px", None),
-        "skew_y_px": getattr(self, "skew_y_px", None),
-        "horizontal_aim_pct": getattr(self, "horizontal_aim_pct", None),
-        "vertical_aim_pct": getattr(self, "vertical_aim_pct", None),
-        "rotation_deg": getattr(self, "rotation_deg", None),
-    }
+    updated_tablet = _generate_updated_tablet(self, self.otd_tablet)
 
-    if any(value is None for value in required_metrics.values()):
-        QtWidgets.QMessageBox.warning(
-            self,
-            "Results unavailable",
-            "Analyzer results are missing; cannot apply adjustments.",
-        )
+    if updated_tablet is None:
         return
-
-    try:
-        w = float(self.otd_tablet.get("Width", 0))
-        h = float(self.otd_tablet.get("Height", 0))
-        x = float(self.otd_tablet.get("X", 0))
-        y = float(self.otd_tablet.get("Y", 0))
-        rot = float(self.otd_tablet.get("Rotation", 0.0))
-    except (TypeError, ValueError):
-        QtWidgets.QMessageBox.critical(
-            self,
-            "Invalid tablet values",
-            "Current Tablet values are invalid or missing.",
-        )
-        return
-
-    horiz_pct = float(required_metrics["horizontal_aim_pct"])
-    vert_pct = float(required_metrics["vertical_aim_pct"])
-    skew_x_px = float(required_metrics["skew_x_px"])
-    skew_y_px = float(required_metrics["skew_y_px"])
-    rotation_delta = float(required_metrics["rotation_deg"])
-
-    new_w = w * (horiz_pct / 100.0)
-    new_h = h * (vert_pct / 100.0)
-
-    new_x = x + skew_x_px
-    new_y = y - skew_y_px
-
-    new_rot = rot + rotation_delta
-
-    apply_width = getattr(self, "applyWidthCheckbox", None)
-    apply_height = getattr(self, "applyHeightCheckbox", None)
-    apply_x = getattr(self, "applyXCheckbox", None)
-    apply_y = getattr(self, "applyYCheckbox", None)
-    apply_rotation = getattr(self, "applyRotationCheckbox", None)
-
-    updated_tablet = dict(self.otd_tablet)
-
-    if apply_width is None or apply_width.isChecked():
-        updated_tablet["Width"] = round(new_w, 3)
-
-    if apply_height is None or apply_height.isChecked():
-        updated_tablet["Height"] = round(new_h, 3)
-
-    if apply_x is None or apply_x.isChecked():
-        updated_tablet["X"] = round(new_x, 3)
-
-    if apply_y is None or apply_y.isChecked():
-        updated_tablet["Y"] = round(new_y, 3)
-
-    if apply_rotation is None or apply_rotation.isChecked():
-        updated_tablet["Rotation"] = round(new_rot, 3)
 
     default_dir = Path(self.otd_config_path).parent if self.otd_config_path else Path.cwd()
     original_name = Path(self.otd_config_path).stem if self.otd_config_path else "settings"
@@ -466,3 +514,236 @@ def apply_otd_adjustments(self):
 
 
 Ui_ResultWindow.apply_otd_adjustments = apply_otd_adjustments
+
+
+def _find_tablet_section(data):
+    tablet_data = None
+    if isinstance(data, dict):
+        potential_tablets = []
+
+        if "Tablet" in data:
+            potential_tablets.append(data.get("Tablet"))
+
+        profiles = data.get("Profiles")
+        if isinstance(profiles, list):
+            for profile in profiles:
+                if not isinstance(profile, dict):
+                    continue
+
+                if "Tablet" in profile:
+                    potential_tablets.append(profile.get("Tablet"))
+
+                absolute_mode_settings = profile.get("AbsoluteModeSettings")
+                if isinstance(absolute_mode_settings, dict) and "Tablet" in absolute_mode_settings:
+                    potential_tablets.append(absolute_mode_settings.get("Tablet"))
+
+        for candidate in potential_tablets:
+            if isinstance(candidate, dict):
+                tablet_data = candidate
+                break
+
+    return tablet_data
+
+
+def _locate_otd_console(settings_path: Path):
+    env_path = os.getenv("OTD_CONSOLE_PATH")
+    if env_path:
+        candidate = Path(env_path)
+        if candidate.is_file():
+            return candidate
+
+    candidates = [
+        settings_path.parent / "OpenTabletDriver.Console.exe",
+        Path("C:/Program Files/OpenTabletDriver/OpenTabletDriver.Console.exe"),
+        Path("C:/Program Files (x86)/OpenTabletDriver/OpenTabletDriver.Console.exe"),
+        Path.home() / "OpenTabletDriver-0.6.4.0" / "OpenTabletDriver.Console.exe",
+    ]
+
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+
+    return None
+
+
+def _apply_live_otd_settings(settings_path: Path):
+    console_client = _locate_otd_console(settings_path)
+
+    if console_client is None:
+        return False, "OpenTabletDriver.Console.exe could not be found."
+
+    try:
+        result = subprocess.run(
+            [str(console_client), "loadsettings", str(settings_path)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as error:
+        error_output = error.stderr.strip() if error.stderr else str(error)
+        return False, error_output
+    except Exception as error:  # pylint: disable=broad-except
+        return False, str(error)
+
+    return True, (result.stdout or "").strip()
+
+
+def _locate_otd_ux(settings_path: Path) -> Path | None:
+    env_path = os.getenv("OTD_UX_PATH")
+    if env_path:
+        candidate = Path(env_path)
+        if candidate.is_file():
+            return candidate
+
+    candidates = [
+        settings_path.parent / "OpenTabletDriver.UX.Wpf.exe",
+        Path("C:/Program Files/OpenTabletDriver/OpenTabletDriver.UX.Wpf.exe"),
+        Path("C:/Program Files (x86)/OpenTabletDriver/OpenTabletDriver.UX.Wpf.exe"),
+        Path.home() / "OpenTabletDriver-0.6.4.0" / "OpenTabletDriver.UX.Wpf.exe",
+    ]
+
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+
+    return None
+
+
+def _restart_otd_ui(self, settings_path: Path):
+    """
+    Try to restart only the OpenTabletDriver UI (UX), not the daemon.
+    Returns (success, message).
+    """
+    # Try to kill running UX process; ignore errors if it's not running
+    try:
+        subprocess.run(
+            ["taskkill", "/IM", "OpenTabletDriver.UX.Wpf.exe", "/F"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception as error:  # pylint: disable=broad-except
+        # Not fatal, we'll still try to start a new instance
+        pass
+
+    ux_path = _locate_otd_ux(settings_path)
+
+    if ux_path is None:
+        return False, "OpenTabletDriver.UX.Wpf.exe could not be found."
+
+    try:
+        subprocess.Popen([str(ux_path)])
+    except Exception as error:  # pylint: disable=broad-except
+        return False, f"Failed to start OpenTabletDriver UI: {error}"
+
+    return True, ""
+
+
+def apply_otd_live(self):
+    """
+    Apply adjustments directly to the live OpenTabletDriver settings:
+    - load %LOCALAPPDATA%/OpenTabletDriver/settings.json
+    - locate Tablet section
+    - compute updated values from analyzer metrics + checkboxes
+    - write back to settings.json
+    - call OpenTabletDriver.Console loadsettings settings.json
+    Optionally restart the OTD UI so it visually reflects the changes.
+    """
+    local_appdata = os.getenv("LOCALAPPDATA")
+    if not local_appdata:
+        QtWidgets.QMessageBox.critical(
+            self,
+            "Environment error",
+            "Could not locate LOCALAPPDATA; cannot find OpenTabletDriver settings.json.",
+        )
+        return
+
+    settings_path = Path(local_appdata) / "OpenTabletDriver" / "settings.json"
+
+    try:
+        with open(settings_path, "r", encoding="utf-8") as file:
+            settings_data = json.load(file)
+    except Exception as error:  # pylint: disable=broad-except
+        QtWidgets.QMessageBox.critical(
+            self,
+            "Failed to load settings",
+            f"Could not load OpenTabletDriver settings.json.\n\n{error}",
+        )
+        return
+
+    tablet_data = _find_tablet_section(settings_data)
+
+    if not isinstance(tablet_data, dict):
+        QtWidgets.QMessageBox.critical(
+            self,
+            "Tablet config not found",
+            "Could not locate a Tablet section in OpenTabletDriver settings.json.",
+        )
+        return
+
+    updated_tablet = _generate_updated_tablet(self, tablet_data)
+
+    if updated_tablet is None:
+        return
+
+    tablet_data.update(updated_tablet)
+
+    try:
+        with open(settings_path, "w", encoding="utf-8") as file:
+            json.dump(settings_data, file, indent=2)
+    except Exception as error:  # pylint: disable=broad-except
+        QtWidgets.QMessageBox.critical(
+            self,
+            "Failed to save",
+            f"Could not save the updated OpenTabletDriver settings.\n\n{error}",
+        )
+        return
+
+    success, message = _apply_live_otd_settings(settings_path)
+
+    if success:
+        info_message = (
+            "Settings have been saved to settings.json and applied to the running "
+            "OpenTabletDriver via console client."
+        )
+
+        restart_checkbox = getattr(self, "restartOtdUiCheckbox", None)
+        if restart_checkbox is not None and restart_checkbox.isChecked():
+            restarted, restart_msg = _restart_otd_ui(self, settings_path)
+            if restarted:
+                info_message += (
+                    "\n\nOpenTabletDriver UI has been restarted so it should now reflect "
+                    "the updated values."
+                )
+            else:
+                info_message += (
+                    "\n\nSettings are active, but the OpenTabletDriver UI could not be "
+                    "restarted automatically.\nPlease close and reopen it manually."
+                )
+                if restart_msg:
+                    info_message += f"\n\nDetails: {restart_msg}"
+        else:
+            info_message += (
+                "\n\nNote: the OpenTabletDriver UI does not refresh automatically.\n"
+                "To see updated values in the GUI, please restart the OpenTabletDriver UI manually."
+            )
+
+        QtWidgets.QMessageBox.information(
+            self,
+            "Settings applied",
+            info_message,
+        )
+    else:
+        QtWidgets.QMessageBox.warning(
+            self,
+            "Console client unavailable",
+            (
+                f"Updated settings saved to:\n{settings_path}\n\n"
+                "OpenTabletDriver.Console.exe was not found or failed to apply settings.\n"
+                "The new values will take effect after restarting OpenTabletDriver.\n\n"
+                f"Details: {message}"
+            ),
+        )
+
+
+Ui_ResultWindow.apply_otd_live = apply_otd_live
